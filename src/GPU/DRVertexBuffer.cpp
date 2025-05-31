@@ -1,4 +1,6 @@
 #include "DRVertexBuffer.h"
+#include "DRCore2/Utils/DRProfiler.h"
+#include "DREngine/DRLogging.h"
 #include <type_traits>
 
 static_assert(std::is_same<DRReal, float>::value, "DRReal ist NICHT float! Rendering erwartet float-basiertes Layout!");
@@ -119,18 +121,32 @@ DRReturn DRVertexBuffer::Init(const std::vector<DRVector3>& vertices, const std:
     glGenVertexArrays(1, &mVAO);
     glBindVertexArray(mVAO);
 
+    GLenum flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+
     GLuint vbo;
     int attribIndex = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(DRVector3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    auto verticesByteSize = sizeof(DRVector3) * vertices.size();
+    glBufferStorage(GL_ARRAY_BUFFER, verticesByteSize, 0, flags);
+    void* p = glMapBufferRange(GL_ARRAY_BUFFER, 0, verticesByteSize, flags);
+    DRProfiler timeUsed;
+    memcpy(p, vertices.data(), verticesByteSize);
+    DRLog.writeToLog("[DRVertexBuffer] %s time for memcpy vertices", timeUsed.string().data());
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(DRVector3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(attribIndex, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attribIndex++);
 
     if (normals.size()) {
         glGenBuffers(1, &mVBONormals);
         glBindBuffer(GL_ARRAY_BUFFER, mVBONormals);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(DRVector3) * normals.size(), normals.data(), GL_STATIC_DRAW);
+        auto normalsByteSize = sizeof(DRVector3) * normals.size();
+        glBufferStorage(GL_ARRAY_BUFFER, normalsByteSize, 0, flags);
+        void* p = glMapBufferRange(GL_ARRAY_BUFFER, 0, normalsByteSize, flags);
+        timeUsed.reset();
+        memcpy(p, normals.data(), normalsByteSize);
+        DRLog.writeToLog("[DRVertexBuffer] %s time for memcpy normals", timeUsed.string().data());
+        // glBufferData(GL_ARRAY_BUFFER, sizeof(DRVector3) * normals.size(), normals.data(), GL_STATIC_DRAW);
         glVertexAttribPointer(attribIndex, 3, GL_FLOAT, GL_TRUE, 0, 0);
         glEnableVertexAttribArray(attribIndex++);
     }
@@ -139,7 +155,13 @@ DRReturn DRVertexBuffer::Init(const std::vector<DRVector3>& vertices, const std:
         GLuint indexBufferID;
         glGenBuffers(1, &indexBufferID);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+        auto indicesByteSize = sizeof(int) * indices.size();
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, indicesByteSize, 0, flags);
+        void* p = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, indicesByteSize, flags);
+        timeUsed.reset();
+        memcpy(p, indices.data(), indicesByteSize);
+        DRLog.writeToLog("[DRVertexBuffer] %s time for memcpy indices", timeUsed.string().data());
+        // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_STATIC_DRAW);
         mIndexCount = static_cast<uint32_t>(indices.size());
     }
 
