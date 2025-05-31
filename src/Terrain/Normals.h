@@ -2,6 +2,7 @@
 #define __TERRAIN_NORMALS_H
 
 #include "HeightMap.h"
+#include "GridDimensions.h"
 
 #include "DRCore2/Threading/DRCPUTask.h"
 #include "DRCore2/Threading/DRCPUScheduler.h"
@@ -19,23 +20,21 @@ namespace Terrain {
 	public:
 		CalculateNormalsTask(
 			DRCPUScheduler* scheduler, 
-			DRVector2 size,
-			DRVector2 stepSize,
+			GridDimensions grid,
+			DRVector3* normalsBuffer,
 			std::shared_ptr<CollectInterpolatedHeights> interpolatedHeights
-		) : DRCPUTask(scheduler, 1), mSize(size), mStepSize(stepSize), mInterpolatedHeights(interpolatedHeights)
+		) : DRCPUTask(scheduler, 1), mGrid(grid), mNormalsBuffer(normalsBuffer), mInterpolatedHeights(interpolatedHeights)
 		{
 			setParentTaskPtrInArray(mInterpolatedHeights, 0);
 		}
 		virtual ~CalculateNormalsTask() {}
 
 		DRReturn run();
-		inline std::shared_ptr<std::vector<DRVector3>> getResult() { assert(isTaskFinished()); return mNormals; }
 		virtual const char* getResourceType() const { return "CalculateNormalsTask"; }
 	protected:
-		DRVector2 mSize;
-		DRVector2 mStepSize;
+		GridDimensions mGrid;
 		std::shared_ptr<CollectInterpolatedHeights> mInterpolatedHeights;
-		std::shared_ptr<std::vector<DRVector3>> mNormals;
+		DRVector3* mNormalsBuffer;
 	};
 
 }

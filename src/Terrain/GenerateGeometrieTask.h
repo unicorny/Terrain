@@ -3,6 +3,8 @@
 
 #include "DRCore2/Threading/DRCPUTask.h"
 #include "DRCore2/Foundation/DRVector2.h"
+#include "DRCore2/Foundation/DRVector3.h"
+#include "GridDimensions.h"
 #include <memory>
 #include <cassert>
 
@@ -17,25 +19,23 @@ namespace Terrain {
 		*/
 		GenerateGeometrieTask(
 			DRCPUScheduler* scheduler,
-			DRVector2 size,
-			DRVector2 stepSize
-		) : DRCPUTask(scheduler), mSize(size), mStepSize(stepSize) {}
+			GridDimensions grid,
+			u32* indicesBuffer
+		) : DRCPUTask(scheduler), mGrid(grid), mIndicesBuffer(indicesBuffer) {}
 
 		virtual ~GenerateGeometrieTask() {};
 
 		DRReturn run();
 
 		std::shared_ptr<std::vector<DRVector2>> getPositions() { assert(isTaskFinished()); return mPositions; }
-		std::shared_ptr<std::vector<unsigned int>> getIndices() { assert(isTaskFinished()); return mIndices; }
-		DRVector2 getSize() const { return mSize; }
+		DRVector2 getSize() const { return mGrid.size; }
 
 		virtual const char* getResourceType() const { return "GenerateGeometrieTask"; }
 
 	protected:
-		DRVector2 mSize;
-		DRVector2 mStepSize;
+		GridDimensions mGrid;
 		std::shared_ptr<std::vector<DRVector2>> mPositions;
-		std::shared_ptr<std::vector<unsigned int>> mIndices;
+		u32* mIndicesBuffer;
 	};
 }
 

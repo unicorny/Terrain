@@ -11,6 +11,8 @@
 namespace Terrain {
 
 	SimpleTerrain::SimpleTerrain()
+		: mIsLoaded(false), mVerticesBuffer(nullptr), mNormalsBuffer(nullptr), mIndicesBuffer(nullptr),
+		mVerticesCount(0), mNormalCount(0), mIndicesCount(0)
 	{
 
 	}
@@ -29,8 +31,20 @@ namespace Terrain {
 		timeUsed.reset();
 
 		float fStepSize = 0.25f;
+		GridDimensions grid(mTTPInfos.heightMapSize, fStepSize);
+		mVerticesCount = grid.stepsCount.x * grid.stepsCount.y;
+		mVerticesBuffer = mVertexBuffer.getVerticesBufferPtr(mVerticesCount);
+		mNormalCount = mVerticesCount;
+		mNormalsBuffer = mVertexBuffer.getNormalsBufferPtr(mNormalCount);
+		mIndicesCount = (grid.stepsCount.x - 1) * (grid.stepsCount.y - 1) * 4;
+		mIndicesBuffer = mVertexBuffer.getIndicesBufferPtr(mIndicesCount);
+
+		DRReal vertexDataSize = ((mVerticesCount + mNormalCount) * sizeof(DRVector3)) / 1024.0 / 1024.0;
+		DRReal indexDataSize = (mIndicesCount * sizeof(u32)) / 1024.0f / 1024.0f;
+		DRLog.writeToLog("[SimpleTerrain] %.2f MByte Vertex Data, %.2f MByte Index Data", vertexDataSize, indexDataSize);
+
 		// generate DRVector2 positions
-		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize);
+		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, grid, mIndicesBuffer);
 		// geometrieTask->scheduleTask(geometrieTask);
 		// load height map from file
 		auto heightMapLoadingTask = std::make_shared<LoadHeightMapFromTTP>(g_DiskScheduler, ttpFileName);
@@ -38,26 +52,27 @@ namespace Terrain {
 		// interpolate heights from height map
 		auto heightMapTask = std::make_shared<CollectInterpolatedHeights>(g_MainScheduler, geometrieTask, heightMapLoadingTask);
 		// calculate normals with height map
-		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapTask);
+		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, grid, mNormalsBuffer, heightMapTask);
 		// heightMapTask->scheduleTask(heightMapTask);
 		// bring all together
 		auto generatingSimpleTerrainTask = std::make_shared<GeneratingSimpleTerrainTask>(g_MainScheduler, heightMapTask, geometrieTask, normalsTask, this);
 		generatingSimpleTerrainTask->scheduleTask(generatingSimpleTerrainTask);
-		DRLog.writeToLog("[SimpleTerrain] %s for chaining together Simple Terrain Tasks", timeUsed.string().data());
+		DRLog.writeToLog("[SimpleTerrain] %s for get glBuffer Pointer and starting tasks", timeUsed.string().data());
 		return DR_OK;
 	}
 
 	DRReturn SimpleTerrain::loadFromHMP(const char* hmpFileName, const char* ttpFileName)
 	{
-		mLoadingTimeSum.reset();
+		/*mLoadingTimeSum.reset();
 		DRProfiler timeUsed;
 		mTTPInfos = loadTTPHeaderFromFile(ttpFileName);
 		DRLog.writeToLog("[SimpleTerrain] %s time for loading TTP File Header", timeUsed.string().data());
 		timeUsed.reset();
 
-		float fStepSize = 1.0f;
+		float fStepSize = 0.5f;
+		GridDimensions grid(mTTPInfos.heightMapSize, fStepSize);
 		// generate DRVector2 positions
-		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize);
+		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, grid);
 		// geometrieTask->scheduleTask(geometrieTask);
 		// load height map from file
 		auto heightMapLoadingTask = std::make_shared<LoadHeightMapFromHme>(g_DiskScheduler, hmpFileName);
@@ -66,11 +81,12 @@ namespace Terrain {
 		auto heightMapTask = std::make_shared<CollectInterpolatedHeights>(g_MainScheduler, geometrieTask, heightMapLoadingTask);
 		// heightMapTask->scheduleTask(heightMapTask);
 		// calculate normals with height map
-		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapTask);
+		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, grid, heightMapTask);
 		// bring all together
 		auto generatingSimpleTerrainTask = std::make_shared<GeneratingSimpleTerrainTask>(g_MainScheduler, heightMapTask, geometrieTask, normalsTask, this);
 		generatingSimpleTerrainTask->scheduleTask(generatingSimpleTerrainTask);
 		DRLog.writeToLog("[SimpleTerrain] %s for chaining together Simple Terrain Tasks", timeUsed.string().data());
+		*/
 		return DR_OK;
 	}
 
@@ -82,21 +98,7 @@ namespace Terrain {
 		}
 		// hack because we can fill Vertex Buffer only in Same Thread in which opengl context was created
 		if (mIsLoaded && !mVertexBuffer.isFilled()) {
-			DRProfiler timeUsed;
-			mVertexBuffer.Init(mVertices, mNormals, mIndices);
-			DRLog.writeToLog("[SimpleTerrain] %s used for fill Vertex Buffer", timeUsed.string().data());
-			DRReal vertexDataSize = ((mVertices.size() + mNormals.size()) * sizeof(DRVector3)) / 1024.0 / 1024.0;
-			DRReal indexDataSize = (mIndices.size() * sizeof(int)) / 1024.0f / 1024.0f;
-			DRLog.writeToLog("[SimpleTerrain] %.2f MByte Vertex Data, %.2f MByte Index Data", vertexDataSize, indexDataSize);
-			timeUsed.reset();
-
-			mVertices.clear();
-			mVertices.shrink_to_fit();
-			mNormals.clear();
-			mNormals.shrink_to_fit();
-			mIndices.clear();
-			mIndices.shrink_to_fit();
-			DRLog.writeToLog("[SimpleTerrain] %s used clear memory", timeUsed.string().data());
+			mVertexBuffer.Init();
 		}
 
 		// Enable it
@@ -161,19 +163,16 @@ namespace Terrain {
 		DRProfiler timeUsed;
 		auto& heights = heightGenerator->getResult();
 		auto& positions = geometryGenerator->getPositions();
-		auto& normals = normalsGenerator->getResult();
-		assert(heights && positions && normals && heights->size() == positions->size() && heights->size() == normals->size());
+		assert(heights && positions && heights->size() == positions->size());
 		DRReal xzScale = mTTPInfos.terrainSize / mTTPInfos.heightMapSize;
 		DRReal yScale = mTTPInfos.terrainHeight;
 
-		mVertices.reserve(positions->size());
+		// mVertices.reserve(positions->size());
 		for (int i = 0; i < positions->size(); i++) {
 			const auto& pos = (*positions)[i];
 			const auto& height = (*heights)[i];
-			mVertices.push_back(DRVector3(pos.x * xzScale, height * yScale, pos.y * xzScale));
+			mVerticesBuffer[i] = DRVector3(pos.x * xzScale, height * yScale, pos.y * xzScale);
 		}
-		mIndices.swap(*geometryGenerator->getIndices());
-		mNormals.swap(*normals);
 		DRLog.writeToLog("[SimpleTerrain] %s used for create 3D Vertices", timeUsed.string().data());
 		timeUsed.reset();
 

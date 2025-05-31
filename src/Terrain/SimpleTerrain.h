@@ -40,10 +40,14 @@ namespace Terrain {
 		std::atomic<bool> mIsLoaded;
 		DRVertexBuffer mVertexBuffer;
 		DRProfiler mLoadingTimeSum;
+		// directly mapped to gpu buffer, for faster data transfer
+		DRVector3* mVerticesBuffer;
+		DRVector3* mNormalsBuffer;
+		u32* mIndicesBuffer;
 
-		std::vector<DRVector3> mVertices;
-		std::vector<DRVector3> mNormals;
-		std::vector<unsigned int> mIndices;
+		size_t mVerticesCount;
+		size_t mNormalCount;
+		size_t mIndicesCount;
 	};
 
 
