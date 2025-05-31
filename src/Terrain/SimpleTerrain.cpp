@@ -28,7 +28,7 @@ namespace Terrain {
 		DRLog.writeToLog("[SimpleTerrain] %s time for loading TTP File Header", timeUsed.string().data());
 		timeUsed.reset();
 
-		float fStepSize = 1.0f;
+		float fStepSize = 0.25f;
 		// generate DRVector2 positions
 		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize);
 		// geometrieTask->scheduleTask(geometrieTask);
@@ -85,6 +85,18 @@ namespace Terrain {
 			DRProfiler timeUsed;
 			mVertexBuffer.Init(mVertices, mNormals, mIndices);
 			DRLog.writeToLog("[SimpleTerrain] %s used for fill Vertex Buffer", timeUsed.string().data());
+			DRReal vertexDataSize = ((mVertices.size() + mNormals.size()) * sizeof(DRVector3)) / 1024.0 / 1024.0;
+			DRReal indexDataSize = (mIndices.size() * sizeof(int)) / 1024.0f / 1024.0f;
+			DRLog.writeToLog("[SimpleTerrain] %.2f MByte Vertex Data, %.2f MByte Index Data", vertexDataSize, indexDataSize);
+			timeUsed.reset();
+
+			mVertices.clear();
+			mVertices.shrink_to_fit();
+			mNormals.clear();
+			mNormals.shrink_to_fit();
+			mIndices.clear();
+			mIndices.shrink_to_fit();
+			DRLog.writeToLog("[SimpleTerrain] %s used clear memory", timeUsed.string().data());
 		}
 
 		// Enable it
