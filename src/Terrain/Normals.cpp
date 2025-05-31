@@ -9,18 +9,18 @@ namespace Terrain {
 		if (DRVector2(stepsCount) * mStepSize != mSize) {
 			LOG_ERROR("please check params, stepsCount * mStepSize != mSize", DR_ERROR);
 		}
-		const auto& height = *mHeightMap->getResult();
+		const auto& heights = *mInterpolatedHeights->getResult();
 		
 		mNormals = std::make_shared<std::vector<DRVector3>>();
 		mNormals->reserve(stepsCount.x * stepsCount.y);
-		for (DRReal y = 0; y < stepsCount.y; y++)
+		for (int y = 0; y < stepsCount.y; y++)
 		{
-			for (DRReal x = 0; x < stepsCount.x; x++)
+			for (int x = 0; x < stepsCount.x; x++)
 			{
-				DRReal hLeft = height.getInterpolatedHeight(DRVector2( y, x > 0 ? x - 1 : x ) * mStepSize);
-				DRReal hRight = height.getInterpolatedHeight(DRVector2( y, x + 1 < stepsCount.x ? x + 1 : x ) * mStepSize);
-				DRReal hDown = height.getInterpolatedHeight(DRVector2( y > 0 ? y - 1 : y, x ) * mStepSize);
-				DRReal hUp = height.getInterpolatedHeight(DRVector2( y + 1 < stepsCount.y ?  y + 1 : y, x ) * mStepSize);
+				DRReal hLeft = heights[ y * stepsCount.y + (x > 0 ? x - 1 : x) ];
+				DRReal hRight = heights[y * stepsCount.y + (x + 1 < stepsCount.x ? x + 1 : x) ];
+				DRReal hDown = heights[ (y > 0 ? y - 1 : y ) * stepsCount.y + x];
+				DRReal hUp = heights[( y + 1 < stepsCount.y ?  y + 1 : y) * stepsCount.y + x ];
 
 				DRVector3 dX = { 2.0f * mStepSize.x, hRight - hLeft, 0.0f };
 				DRVector3 dY = { 0.0f, hUp - hDown, 2.0f * mStepSize.y };

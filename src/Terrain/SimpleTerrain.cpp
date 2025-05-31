@@ -38,7 +38,7 @@ namespace Terrain {
 		// interpolate heights from height map
 		auto heightMapTask = std::make_shared<CollectInterpolatedHeights>(g_MainScheduler, geometrieTask, heightMapLoadingTask);
 		// calculate normals with height map
-		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapLoadingTask);
+		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapTask);
 		// heightMapTask->scheduleTask(heightMapTask);
 		// bring all together
 		auto generatingSimpleTerrainTask = std::make_shared<GeneratingSimpleTerrainTask>(g_MainScheduler, heightMapTask, geometrieTask, normalsTask, this);
@@ -66,7 +66,7 @@ namespace Terrain {
 		auto heightMapTask = std::make_shared<CollectInterpolatedHeights>(g_MainScheduler, geometrieTask, heightMapLoadingTask);
 		// heightMapTask->scheduleTask(heightMapTask);
 		// calculate normals with height map
-		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapLoadingTask);
+		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapTask);
 		// bring all together
 		auto generatingSimpleTerrainTask = std::make_shared<GeneratingSimpleTerrainTask>(g_MainScheduler, heightMapTask, geometrieTask, normalsTask, this);
 		generatingSimpleTerrainTask->scheduleTask(generatingSimpleTerrainTask);
