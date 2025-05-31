@@ -20,7 +20,8 @@ public:
 	DRVertexBuffer();
 	~DRVertexBuffer();
 	DRReturn Init(DRVector3* pVertices, uint32_t iNumVertices, DRColor* pColors, DRVector2* pTexCoords, DRVector3* pNormals = nullptr, bool bValue = true);
-	DRReturn Init(const std::vector<DRVector3> vertices, const std::vector<unsigned int>& indices);
+	DRReturn Init(const std::vector<DRVector3>& vertices, const std::vector<unsigned int>& indices);
+	DRReturn Init(const std::vector<DRVector3>& vertices, const std::vector<DRVector3>& normals, const std::vector<unsigned int>& indices);
 	DRReturn Init(const std::vector<DetailedVertex>& vertexData);
 	DRReturn Init(const std::vector<DetailedVertex>& vertexData, const std::vector<int>& indices);
 	DRReturn RenderIndex(GLenum renderMode, uint32_t indexCount, u32* pIndices);
@@ -34,6 +35,7 @@ protected:
 	void setVertexData(const std::vector<DetailedVertex>& vertexData);
 
 	GLuint mVAO;
+	GLuint mVBONormals;
 	uint32_t mVertexCount;
 	uint32_t mIndexCount;
 };

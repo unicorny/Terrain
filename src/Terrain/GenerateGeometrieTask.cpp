@@ -11,9 +11,7 @@ namespace Terrain {
 		if (stepsCount * mStepSize != mSize) {
 			LOG_ERROR("please check params, stepsCount * mStepSize != mSize", DR_ERROR);
 		}
-        // for the edges
-        // stepsCount += {1, 1};
-
+    
 		mPositions = std::make_shared<std::vector<DRVector2>>();
 		mPositions->reserve(stepsCount.x * stepsCount.y);
 		mIndices = std::make_shared<std::vector<unsigned int>>();

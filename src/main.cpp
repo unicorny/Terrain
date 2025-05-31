@@ -69,6 +69,8 @@ DRReturn Load()
 {
 	g_MainScheduler = new DRCPUScheduler(SDL_GetCPUCount(), "mainScheduler");
 	g_DiskScheduler = new DRCPUScheduler(2, "diskScheduler");
+	// g_MainScheduler = new DRCPUScheduler(4, "mainScheduler");
+	// g_DiskScheduler = g_MainScheduler;
 	if(EnInit(1.0f))
 	{
 	//	LOG_ERROR("Fehler beim Engine Init!", DR_ERROR);
@@ -101,6 +103,7 @@ DRReturn Load()
 		return DR_ERROR;
 	}
 	if (g_Terrain.loadFromTTP("Data/Terrain512.ttp")) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
+	// if (g_Terrain.loadFromHMP("Data/testMap.hmp", "Data/Terrain512.ttp")) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
 	//if(g_Terrain.Init("Data/Terrain512.ttp")) LOG_ERROR("Fehler beim terrain2 Init", DR_ERROR);
 	//DRLog.writeToLog("Time for DRTerrain: %s", timeUsed.string().data());
 
@@ -200,7 +203,7 @@ DRReturn Move(float fTime)
 DRReturn Render(float fTime)
 {
 	// force reduce framerate
-	while (timePerLoop.millis() < 8.0) {
+	while (timePerLoop.millis() < 8.0 && g_Terrain.isLoaded()) {
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
 	}
 	timePerLoop.reset();

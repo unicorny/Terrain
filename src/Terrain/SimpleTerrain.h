@@ -3,6 +3,7 @@
 
 #include "TTP.h"
 #include "HeightMap.h"
+#include "Normals.h"
 #include "../GPU/DRVertexBuffer.h"
 
 #include "DRCore2/DRTypes.h"
@@ -20,6 +21,7 @@ namespace Terrain {
 		SimpleTerrain();
 		~SimpleTerrain();
 		DRReturn loadFromTTP(const char* ttpFileName);
+		DRReturn loadFromHMP(const char* hmpFileName, const char* ttpFileName);
 		DRReturn Render();
 
 		inline bool isLoaded() const { return mIsLoaded; }
@@ -29,7 +31,8 @@ namespace Terrain {
 		}
 		void generating3DVertices(
 			std::shared_ptr<CollectInterpolatedHeights> heightGenerator,
-			std::shared_ptr<GenerateGeometrieTask> geometryGenerator
+			std::shared_ptr<GenerateGeometrieTask> geometryGenerator,
+			std::shared_ptr<CalculateNormalsTask> normalsGenerator
 		);
 
 	protected:
@@ -39,6 +42,7 @@ namespace Terrain {
 		DRProfiler mLoadingTimeSum;
 
 		std::vector<DRVector3> mVertices;
+		std::vector<DRVector3> mNormals;
 		std::vector<unsigned int> mIndices;
 	};
 
@@ -50,14 +54,18 @@ namespace Terrain {
 			DRCPUScheduler* scheduler, 
 			std::shared_ptr<CollectInterpolatedHeights> heightsGenerator,
 			std::shared_ptr<GenerateGeometrieTask> geometryGenerator,
+			std::shared_ptr<CalculateNormalsTask> normalsGenerator,
 			SimpleTerrain* simpleTerrain
 		)
-			: DRCPUTask(scheduler, 2), 
+			: DRCPUTask(scheduler, 3), 
 			mHeightsGenerator(heightsGenerator), 
 			mGeometrieGenerator(geometryGenerator),
-			mSimpleTerrain(simpleTerrain) {
+			mNormalsGenerator(normalsGenerator),
+			mSimpleTerrain(simpleTerrain) 
+		{
 			setParentTaskPtrInArray(mGeometrieGenerator, 0);
 			setParentTaskPtrInArray(mHeightsGenerator, 1);
+			setParentTaskPtrInArray(mNormalsGenerator, 2);
 		};
 		virtual ~GeneratingSimpleTerrainTask() {}
 		DRReturn run();
@@ -65,6 +73,7 @@ namespace Terrain {
 	protected:
 		std::shared_ptr<CollectInterpolatedHeights> mHeightsGenerator;
 		std::shared_ptr<GenerateGeometrieTask> mGeometrieGenerator;
+		std::shared_ptr<CalculateNormalsTask> mNormalsGenerator;
 		SimpleTerrain* mSimpleTerrain;
 	};
 }
