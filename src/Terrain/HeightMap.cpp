@@ -16,8 +16,8 @@ namespace Terrain {
 
 	DRReal HeightMap::getInterpolatedHeight(const DRVector2 pos) const
 	{
-		assert(pos.x >= 0 && pos.x <= static_cast<DRReal>(width));
-		assert(pos.y >= 0 && pos.y <= static_cast<DRReal>(height));
+		assert(pos.x >= 0 && pos.x < static_cast<DRReal>(width));
+		assert(pos.y >= 0 && pos.y < static_cast<DRReal>(height));
 		assert(map.size() >= width * height);
 
 		// position in terrain coords only integer part

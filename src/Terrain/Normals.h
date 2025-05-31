@@ -21,10 +21,10 @@ namespace Terrain {
 			DRCPUScheduler* scheduler, 
 			DRVector2 size,
 			DRVector2 stepSize,
-			std::shared_ptr<HeightMapLoader> heightMap
-		) : DRCPUTask(scheduler, 1), mSize(size), mStepSize(stepSize), mHeightMap(heightMap)
+			std::shared_ptr<CollectInterpolatedHeights> interpolatedHeights
+		) : DRCPUTask(scheduler, 1), mSize(size), mStepSize(stepSize), mInterpolatedHeights(interpolatedHeights)
 		{
-			setParentTaskPtrInArray(heightMap, 0);
+			setParentTaskPtrInArray(mInterpolatedHeights, 0);
 		}
 		virtual ~CalculateNormalsTask() {}
 
@@ -34,7 +34,7 @@ namespace Terrain {
 	protected:
 		DRVector2 mSize;
 		DRVector2 mStepSize;
-		std::shared_ptr<HeightMapLoader> mHeightMap;
+		std::shared_ptr<CollectInterpolatedHeights> mInterpolatedHeights;
 		std::shared_ptr<std::vector<DRVector3>> mNormals;
 	};
 

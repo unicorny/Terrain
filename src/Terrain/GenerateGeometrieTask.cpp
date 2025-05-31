@@ -8,7 +8,10 @@ namespace Terrain {
 	{
         DRProfiler timeUsed;
 		DRVector2i stepsCount = mSize / mStepSize;
-		if (stepsCount * mStepSize != mSize) {
+		if (DRVector2(stepsCount) * mStepSize != mSize) {
+			DRVector2 mul = stepsCount * mStepSize;
+			DRLog.writeToLog("x: %d * %.8f = %.8f != %.8f", stepsCount.x, mStepSize.x, mul.x, mSize.x);
+			DRLog.writeToLog("y: %d * %.8f = %.8f != %.8f", stepsCount.y, mStepSize.y, mul.y, mSize.y);
 			LOG_ERROR("please check params, stepsCount * mStepSize != mSize", DR_ERROR);
 		}
     
@@ -33,7 +36,7 @@ namespace Terrain {
 				mIndices->push_back(bottomLeft);
 			}
 		}
-        DRLog.writeToLog("[GenerateGeometrieTask] %s for generating %d 2d Vertices + Indices", timeUsed.string().data(), mPositions->size());
+        DRLog.writeToLog("[GenerateGeometrieTask] %s for generating %d 2d Vertices + %d Indices", timeUsed.string().data(), mPositions->size(), mIndices->size());
 		return DR_OK;
 	}
 

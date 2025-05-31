@@ -1,6 +1,7 @@
 #include "main.h"
 #include "Camera.h"
 #include "Terrain/SimpleTerrain.h"
+#include "Terrain/NTerrain.h"
 #include "DREngine/DRLogging.h"
 #include "DREngine/Engine2Main.h"
 #include "DREngine/Const.h"
@@ -19,6 +20,7 @@ Camera m_Camera;
 DRCPUScheduler* g_MainScheduler = nullptr;
 DRCPUScheduler* g_DiskScheduler = nullptr;
 Terrain::SimpleTerrain g_Terrain;
+CTerrain g_adaptiveTerrain;
 DRProfiler timePerLoop;
 
 DRVideoConfig GetVideoConfig()
@@ -102,6 +104,7 @@ DRReturn Load()
 		printf("Fehler beim Init von OpenGL!");
 		return DR_ERROR;
 	}
+	// if (g_adaptiveTerrain.Init("Data/Terrain512")) LOG_ERROR("Fehler bei Terrain Edit", DR_ERROR);
 	if (g_Terrain.loadFromTTP("Data/Terrain512.ttp")) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
 	// if (g_Terrain.loadFromHMP("Data/testMap.hmp", "Data/Terrain512.ttp")) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
 	//if(g_Terrain.Init("Data/Terrain512.ttp")) LOG_ERROR("Fehler beim terrain2 Init", DR_ERROR);
@@ -241,7 +244,7 @@ DRReturn Render(float fTime)
 	}
 
 	if(g_Terrain.Render() == DR_ERROR) LOG_ERROR("Fehler beim Terrain Render!", DR_ERROR);
-	//if (g_Terrain.Render()) { LOG_ERROR("Fehler beim Terrain2 Render!", DR_ERROR); }
+	//if (g_adaptiveTerrain.Render(fTime)) { LOG_ERROR("Fehler beim Terrain2 Render!", DR_ERROR); }
 
 	glTranslatef(0.0f, -10.0f, 0.0f);	
 	

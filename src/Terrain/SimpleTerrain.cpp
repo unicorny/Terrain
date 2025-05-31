@@ -28,7 +28,7 @@ namespace Terrain {
 		DRLog.writeToLog("[SimpleTerrain] %s time for loading TTP File Header", timeUsed.string().data());
 		timeUsed.reset();
 
-		float fStepSize = 1.0f;
+		float fStepSize = 0.25f;
 		// generate DRVector2 positions
 		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize);
 		// geometrieTask->scheduleTask(geometrieTask);
@@ -38,7 +38,7 @@ namespace Terrain {
 		// interpolate heights from height map
 		auto heightMapTask = std::make_shared<CollectInterpolatedHeights>(g_MainScheduler, geometrieTask, heightMapLoadingTask);
 		// calculate normals with height map
-		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapLoadingTask);
+		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapTask);
 		// heightMapTask->scheduleTask(heightMapTask);
 		// bring all together
 		auto generatingSimpleTerrainTask = std::make_shared<GeneratingSimpleTerrainTask>(g_MainScheduler, heightMapTask, geometrieTask, normalsTask, this);
@@ -66,7 +66,7 @@ namespace Terrain {
 		auto heightMapTask = std::make_shared<CollectInterpolatedHeights>(g_MainScheduler, geometrieTask, heightMapLoadingTask);
 		// heightMapTask->scheduleTask(heightMapTask);
 		// calculate normals with height map
-		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapLoadingTask);
+		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mTTPInfos.heightMapSize, fStepSize, heightMapTask);
 		// bring all together
 		auto generatingSimpleTerrainTask = std::make_shared<GeneratingSimpleTerrainTask>(g_MainScheduler, heightMapTask, geometrieTask, normalsTask, this);
 		generatingSimpleTerrainTask->scheduleTask(generatingSimpleTerrainTask);
@@ -85,6 +85,18 @@ namespace Terrain {
 			DRProfiler timeUsed;
 			mVertexBuffer.Init(mVertices, mNormals, mIndices);
 			DRLog.writeToLog("[SimpleTerrain] %s used for fill Vertex Buffer", timeUsed.string().data());
+			DRReal vertexDataSize = ((mVertices.size() + mNormals.size()) * sizeof(DRVector3)) / 1024.0 / 1024.0;
+			DRReal indexDataSize = (mIndices.size() * sizeof(int)) / 1024.0f / 1024.0f;
+			DRLog.writeToLog("[SimpleTerrain] %.2f MByte Vertex Data, %.2f MByte Index Data", vertexDataSize, indexDataSize);
+			timeUsed.reset();
+
+			mVertices.clear();
+			mVertices.shrink_to_fit();
+			mNormals.clear();
+			mNormals.shrink_to_fit();
+			mIndices.clear();
+			mIndices.shrink_to_fit();
+			DRLog.writeToLog("[SimpleTerrain] %s used clear memory", timeUsed.string().data());
 		}
 
 		// Enable it
