@@ -1,9 +1,10 @@
 # Terrain Editor
-A C++ based terrain viewer application, basically for play around with different Terrain Render Technics
-SimpleTerrain use a evenly Grid, but with newer version GL_TRIANGLE_STRIP instead of GL_QUADS
-SimpleTerrain now uses Multithreading for faster startup time
-NTerrain use an adaptive LOD Grid, which more height differences in one place, more details
-TODO: Update NTerrain for using also Multithreading for faster startup time
+A C++ based terrain viewer application, basically for play around with different Terrain Render Technics.
+
+- SimpleTerrain use a evenly Grid, but with newer version GL_TRIANGLE_STRIP instead of GL_QUADS.
+- SimpleTerrain now uses Multithreading for faster startup time.
+- NTerrain use an adaptive LOD Grid, which more height differences in one place, more details.
+- TODO: Update NTerrain for using also Multithreading for faster startup time
 
 ## Project Structure
 
