@@ -1,10 +1,11 @@
 #ifndef __TERRAIN_GENERATE_GEOMETRIE_TASK_H
 #define __TERRAIN_GENERATE_GEOMETRIE_TASK_H
 
+#include "../GPU/DRGLBufferStatic.h"
 #include "DRCore2/Threading/DRCPUTask.h"
 #include "DRCore2/Foundation/DRVector2.h"
 #include "DRCore2/Foundation/DRVector3.h"
-#include "GridDimensions.h"
+#include "QuadraticGridLogic.h"
 #include <memory>
 #include <cassert>
 
@@ -19,23 +20,26 @@ namespace Terrain {
 		*/
 		GenerateGeometrieTask(
 			DRCPUScheduler* scheduler,
-			GridDimensions grid,
-			u32* indicesBuffer
-		) : DRCPUTask(scheduler), mGrid(grid), mIndicesBuffer(indicesBuffer) {}
+			QuadraticGridLogic grid,
+			std::shared_ptr<GPU::DRGLBufferStatic> indicesBuffer
+		) : DRCPUTask(scheduler), mGrid(grid), mIndicesBuffer(indicesBuffer) 
+		{
+			assert(indicesBuffer);
+		}
 
 		virtual ~GenerateGeometrieTask() {};
 
 		DRReturn run();
 
 		std::shared_ptr<std::vector<DRVector2>> getPositions() { assert(isTaskFinished()); return mPositions; }
-		DRVector2 getSize() const { return mGrid.size; }
+		u16 getSize() const { return mGrid.size(); }
 
 		virtual const char* getResourceType() const { return "GenerateGeometrieTask"; }
 
 	protected:
-		GridDimensions mGrid;
+		QuadraticGridLogic mGrid;
 		std::shared_ptr<std::vector<DRVector2>> mPositions;
-		u32* mIndicesBuffer;
+		std::shared_ptr<GPU::DRGLBufferStatic> mIndicesBuffer;
 	};
 }
 

@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 project(Terrain VERSION 1.0.0)
 
 # Set C++ standard
-#set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add DREngine dependency
 add_subdirectory(dependencies/DREngine)
@@ -31,7 +31,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE DREngine glu32.lib)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/stb
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/DREngine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/DREngine/dependencies/magic_enum/include
 )
 
 # Copy DLL files to output directory

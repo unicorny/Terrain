@@ -1,10 +1,12 @@
 #ifndef __TERRAIN_SIMPLE_TERRAIN_H
 #define __TERRAIN_SIMPLE_TERRAIN_H
 
+#include "../GPU/DRGLBufferStatic.h"
+
 #include "TTP.h"
 #include "HeightMap.h"
 #include "Normals.h"
-#include "../GPU/DRVertexBuffer.h"
+#include "QuadraticGridLogic.h"
 
 #include "DRCore2/DRTypes.h"
 #include "DRCore2/Threading/DRCPUTask.h"
@@ -20,8 +22,7 @@ namespace Terrain {
 	public:
 		SimpleTerrain();
 		~SimpleTerrain();
-		DRReturn loadFromTTP(const char* ttpFileName);
-		DRReturn loadFromHMP(const char* hmpFileName, const char* ttpFileName);
+		DRReturn load(QuadraticGridLogic grid, const char* heightMapFileName);
 		DRReturn Render();
 
 		inline bool isLoaded() const { return mIsLoaded; }
@@ -31,23 +32,18 @@ namespace Terrain {
 		}
 		void generating3DVertices(
 			std::shared_ptr<CollectInterpolatedHeights> heightGenerator,
-			std::shared_ptr<GenerateGeometrieTask> geometryGenerator,
-			std::shared_ptr<CalculateNormalsTask> normalsGenerator
+			std::shared_ptr<GenerateGeometrieTask> geometryGenerator
 		);
 
 	protected:
-		TTPHeader mTTPInfos;
+		QuadraticGridLogic mGrid;
+		DRReal			   mTerrainHeight;
 		std::atomic<bool> mIsLoaded;
-		DRVertexBuffer mVertexBuffer;
 		DRProfiler mLoadingTimeSum;
 		// directly mapped to gpu buffer, for faster data transfer
-		DRVector3* mVerticesBuffer;
-		DRVector3* mNormalsBuffer;
-		u32* mIndicesBuffer;
-
-		size_t mVerticesCount;
-		size_t mNormalCount;
-		size_t mIndicesCount;
+		std::shared_ptr<GPU::DRGLBufferStatic> mVerticesBuffer;
+		std::shared_ptr<GPU::DRGLBufferStatic> mNormalsBuffer;
+		std::shared_ptr<GPU::DRGLBufferStatic> mIndicesBuffer;
 	};
 
 
@@ -64,12 +60,11 @@ namespace Terrain {
 			: DRCPUTask(scheduler, 3), 
 			mHeightsGenerator(heightsGenerator), 
 			mGeometrieGenerator(geometryGenerator),
-			mNormalsGenerator(normalsGenerator),
 			mSimpleTerrain(simpleTerrain) 
 		{
 			setParentTaskPtrInArray(mGeometrieGenerator, 0);
 			setParentTaskPtrInArray(mHeightsGenerator, 1);
-			setParentTaskPtrInArray(mNormalsGenerator, 2);
+			setParentTaskPtrInArray(normalsGenerator, 2);
 		};
 		virtual ~GeneratingSimpleTerrainTask() {}
 		DRReturn run();
@@ -77,7 +72,6 @@ namespace Terrain {
 	protected:
 		std::shared_ptr<CollectInterpolatedHeights> mHeightsGenerator;
 		std::shared_ptr<GenerateGeometrieTask> mGeometrieGenerator;
-		std::shared_ptr<CalculateNormalsTask> mNormalsGenerator;
 		SimpleTerrain* mSimpleTerrain;
 	};
 }

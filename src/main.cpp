@@ -2,12 +2,14 @@
 #include "Camera.h"
 #include "Terrain/SimpleTerrain.h"
 #include "Terrain/NTerrain.h"
+#include "Terrain/QuadraticGridLogic.h"
 #include "DREngine/DRLogging.h"
 #include "DREngine/Engine2Main.h"
 #include "DREngine/Const.h"
 #include "DRCore2/Threading/DRCPUScheduler.h"
 #include "DRCore2/Foundation/DRObject.h"
 #include "DRCore2/Foundation/DRFile.h"
+#include "DRCore2/Utils/DRIni.h"
 
 #include "SDL.h"
 #include <iostream>
@@ -104,8 +106,16 @@ DRReturn Load()
 		printf("Fehler beim Init von OpenGL!");
 		return DR_ERROR;
 	}
+	DRIni terrainConfig("Data/terrainConfig.ini");
+	std::string heightMapPath("Data/");
+	heightMapPath += *terrainConfig.getStr("Terrain", "HeightMapPath");
+	Terrain::QuadraticGridLogic grid(
+		terrainConfig.getInt("Terrain", "Size"), 
+		terrainConfig.getInt("Terrain", "Height"),
+		terrainConfig.getInt("Terrain", "Quads")
+	);
 	// if (g_adaptiveTerrain.Init("Data/Terrain512")) LOG_ERROR("Fehler bei Terrain Edit", DR_ERROR);
-	if (g_Terrain.loadFromTTP("Data/Terrain512.ttp")) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
+	if (g_Terrain.load(grid, heightMapPath.data())) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
 	// if (g_Terrain.loadFromHMP("Data/testMap.hmp", "Data/Terrain512.ttp")) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
 	//if(g_Terrain.Init("Data/Terrain512.ttp")) LOG_ERROR("Fehler beim terrain2 Init", DR_ERROR);
 	//DRLog.writeToLog("Time for DRTerrain: %s", timeUsed.string().data());
@@ -244,7 +254,7 @@ DRReturn Render(float fTime)
 	}
 
 	if(g_Terrain.Render() == DR_ERROR) LOG_ERROR("Fehler beim Terrain Render!", DR_ERROR);
-	//if (g_adaptiveTerrain.Render(fTime)) { LOG_ERROR("Fehler beim Terrain2 Render!", DR_ERROR); }
+	// if (g_adaptiveTerrain.Render(fTime)) { LOG_ERROR("Fehler beim Terrain2 Render!", DR_ERROR); }
 
 	glTranslatef(0.0f, -10.0f, 0.0f);	
 	

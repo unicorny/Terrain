@@ -20,6 +20,7 @@ public:
 	DRVertexBuffer();
 	~DRVertexBuffer();
 	DRReturn Init(DRVector3* pVertices, uint32_t iNumVertices, DRColor* pColors, DRVector2* pTexCoords, DRVector3* pNormals = nullptr, bool bValue = true);
+	DRReturn Init(DRVector3* pVertices, uint32_t iNumVertices, DRVector3* pNormals = nullptr, u32* indices = nullptr, uint32_t indexCount = 0);
 	// DRReturn Init(const std::vector<DRVector3>& vertices, const std::vector<unsigned int>& indices);
 	DRReturn Init();
 	DRReturn Init(const std::vector<DetailedVertex>& vertexData);

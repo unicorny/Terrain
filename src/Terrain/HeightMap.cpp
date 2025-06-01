@@ -2,9 +2,13 @@
 #include "TTP.h"
 
 #include "DRCore2/DRTypes.h"
+#include "DRCore2/Foundation/DRUtils.h"
 #include "DRCore2/Utils/DRProfiler.h"
 #include "DREngine/DRLogging.h"
 #include "DREngine/DRIImage.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #include <filesystem>
 #include <cassert>
@@ -14,7 +18,7 @@ namespace Terrain {
 	// multiplication on cpu is usually faster than division
 	constexpr DRReal INV_255 = 1.0 / 255.0;
 
-	DRReal HeightMap::getInterpolatedHeight(const DRVector2 pos) const
+	DRReal HeightMap::getInterpolatedHeight(const DRVector2& pos) const
 	{
 		assert(pos.x >= 0 && pos.x < static_cast<DRReal>(width));
 		assert(pos.y >= 0 && pos.y < static_cast<DRReal>(height));
@@ -45,41 +49,19 @@ namespace Terrain {
 		return (hTop * (1.0 - diff.y)) + (hBottom * diff.y);
 	}
 
-
-
-	DRReturn CollectInterpolatedHeights::run()
+	DRReturn HeightMapLoader::run()
 	{
-		DRProfiler timeUsed;
-		auto& heightMap = mHeightMap;
-		if (!heightMap && mHeightMapLoaderTask) {
-			heightMap = mHeightMapLoaderTask->getResult();
+		// try to detect correct file type
+		if (DRCheckEndung(mFileName.data(), "ttp") || DRCheckEndung(mFileName.data(), "TTP")) {
+			return loadFromTTP();
 		}
-		auto& positions = mPositions;
-		if (!mPositions && mPositionsGeneratingTask) {
-			positions = mPositionsGeneratingTask->getPositions();
+		else if (DRCheckEndung(mFileName.data(), "hmp") || DRCheckEndung(mFileName.data(), "HMP")) {
+			return loadFromHme();
 		}
-		assert(positions && heightMap);
-		mHeights = std::make_shared<std::vector<DRReal>>();
-		mHeights->reserve(positions->size());
-		const auto& posVec = *positions;
-		for (int i = 0; i < positions->size(); i++) {
-			mHeights->push_back(heightMap->getInterpolatedHeight(posVec[i]));
-		}
-		DRLog.writeToLog("[CollectInterpolatedHeights] %s for interpolate %d heights from Terrain Height Map", timeUsed.string().data(), mHeights->size());
-		return DR_OK;
+		return loadFromImage();
 	}
 
-	std::shared_ptr<const std::vector<DRVector2>> CollectInterpolatedHeights::getPositions()
-	{
-		auto positions = mPositions;
-		if (!mPositions && mPositionsGeneratingTask) {
-			positions = mPositionsGeneratingTask->getPositions();
-		}
-		return positions;
-	}
-
-
-	DRReturn LoadHeightMapFromHme::run()
+	DRReturn HeightMapLoader::loadFromHme()
 	{
 		DRProfiler timeUsed;
 		try {
@@ -89,14 +71,14 @@ namespace Terrain {
 				LOG_ERROR("File is smaller than expected header size", DR_ERROR);
 			}
 			std::ifstream file(mFileName.data(), std::ios::binary);
-			int file_header[25];
+			int file_header[25]; memset(file_header, 0, 25 * sizeof(int));
 			file.read(reinterpret_cast<char*>(file_header), 100);
 			mHeightMap = std::make_shared<HeightMap>();
 			mHeightMap->width = file_header[0];
 			mHeightMap->height = file_header[1];
 			auto size = file_header[0] * file_header[1];
 			if (fileSize < 100 + size) {
-				DRLog.writeToLog("Try to open file: %s, reported size: %llu, heigt map width: %d, height: %d", 
+				DRLog.writeToLog("Try to open file: %s, reported size: %llu, heigt map width: %d, height: %d",
 					mFileName.data(),
 					fileSize,
 					mHeightMap->width,
@@ -108,8 +90,8 @@ namespace Terrain {
 			file.read(reinterpret_cast<char*>(mHeightMap->map.data()), size);
 
 			file.close();
-			DRLog.writeToLog("[LoadHeightMapFromHme] %s for loading Height Map from Hme file with %d x %d", 
-				timeUsed.string().data(), 
+			DRLog.writeToLog("[LoadHeightMapFromHme] %s for loading Height Map from Hme file with %d x %d",
+				timeUsed.string().data(),
 				mHeightMap->width,
 				mHeightMap->height
 			);
@@ -118,37 +100,9 @@ namespace Terrain {
 		catch (std::filesystem::filesystem_error& e) {
 			DRLog.writeToLog("Try to open file: %s, exception thrown: %s", mFileName.data(), e.what());
 			LOG_ERROR("Couldn't open file", DR_ERROR);
-		}		
-	}
-
-	DRReturn LoadHeightMapFromImage::run()
-	{
-		DRProfiler timeUsed;
-		auto image = DRIImage::newImage();
-		if (image->loadFromFile(mFileName.data())) {
-			LOG_ERROR("error loading image from file", DR_ERROR);
 		}
-		mHeightMap = std::make_shared<HeightMap>();
-		mHeightMap->width = image->getWidth();
-		mHeightMap->height = image->getHeight();
-		u32 size = mHeightMap->width * mHeightMap->height;
-		DRColor* colorBuffer = new DRColor[size];
-		mHeightMap->map.reserve(size);
-		image->getPixel(colorBuffer);
-		for (u32 i = 0; i < size; i++) {
-			mHeightMap->map.push_back(colorBuffer[i].r);
-		}
-		DRIImage::deleteImage(image);
-		DRLog.writeToLog("[LoadHeightMapFromImage] %s for loading Height Map from Image file (%s) with %d x %d",
-			timeUsed.string().data(),
-			mFileName.data(),
-			mHeightMap->width,
-			mHeightMap->height
-		);
-		return DR_OK;		
 	}
-
-	DRReturn LoadHeightMapFromTTP::run()
+	DRReturn HeightMapLoader::loadFromTTP()
 	{
 		DRProfiler timeUsed;
 		auto fileSize = std::filesystem::file_size(mFileName);
@@ -189,4 +143,65 @@ namespace Terrain {
 		return DR_OK;
 	}
 
+	DRReturn HeightMapLoader::loadFromImage()
+	{
+		DRProfiler timeUsed;
+		int x, y, n;
+		unsigned char *data = stbi_load(mFileName.data(), &x, &y, &n, 1);
+		//if (n != 4) {
+			//LOG_ERROR("not rgba currently not implemented", DR_ERROR);
+		//}
+
+		mHeightMap = std::make_shared<HeightMap>();
+		mHeightMap->width = x;
+		mHeightMap->height = y;
+		u32 size = mHeightMap->width * mHeightMap->height;
+		DRColor* colorBuffer = new DRColor[size];
+		mHeightMap->map.resize(size);
+		memcpy(mHeightMap->map.data(), data, size);
+		//for (u32 i = 0; i < size; i++) {
+			//mHeightMap->map.push_back(colorBuffer[i].r);
+		//}
+		stbi_image_free(data);
+		DRLog.writeToLog("[LoadHeightMapFromImage] %s for loading Height Map from Image file (%s) with %d x %d",
+			timeUsed.string().data(),
+			mFileName.data(),
+			mHeightMap->width,
+			mHeightMap->height
+		);
+		return DR_OK;
+	}
+
+	DRReturn CollectInterpolatedHeights::run()
+	{
+		DRProfiler timeUsed;
+		auto& heightMap = mHeightMap;
+		if (!heightMap && mHeightMapLoaderTask) {
+			heightMap = mHeightMapLoaderTask->getResult();
+		}
+		auto& positions = mPositions;
+		if (!mPositions && mPositionsGeneratingTask) {
+			positions = mPositionsGeneratingTask->getPositions();
+		}
+		// scale 
+		DRReal scaleMultiplicator = static_cast<DRReal>(heightMap->width - 1) / static_cast<DRReal>(mPositionsGeneratingTask->getSize());
+		assert(positions && heightMap);
+		mHeights = std::make_shared<std::vector<DRReal>>();
+		mHeights->reserve(positions->size());
+		const auto& posVec = *positions;
+		for (int i = 0; i < positions->size(); i++) {
+			mHeights->push_back(heightMap->getInterpolatedHeight(posVec[i] * scaleMultiplicator));
+		}
+		DRLog.writeToLog("[CollectInterpolatedHeights] %s for interpolate %d heights from Terrain Height Map", timeUsed.string().data(), mHeights->size());
+		return DR_OK;
+	}
+
+	std::shared_ptr<const std::vector<DRVector2>> CollectInterpolatedHeights::getPositions()
+	{
+		auto positions = mPositions;
+		if (!mPositions && mPositionsGeneratingTask) {
+			positions = mPositionsGeneratingTask->getPositions();
+		}
+		return positions;
+	}
 }

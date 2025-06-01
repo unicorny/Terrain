@@ -69,6 +69,47 @@ DRReturn DRVertexBuffer::Init(DRVector3* pVertices, uint32_t iNumVertices, DRCol
     return DR_OK;
 }
 
+DRReturn DRVertexBuffer::Init(DRVector3* pVertices, uint32_t iNumVertices, DRVector3* pNormals/* = nullptr*/, u32* indices, uint32_t indexCount)
+{
+    // Simple VAO + VBO Init
+    GLuint vbo[4];
+    glGenVertexArrays(1, &mVAO);
+    glBindVertexArray(mVAO);
+
+    int attribIndex = 0;
+    mVertexCount = iNumVertices;
+
+    // Vertex positions
+    if (pVertices) {
+        glGenBuffers(1, &vbo[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(DRVector3) * iNumVertices, pVertices, GL_STATIC_DRAW);
+        glVertexAttribPointer(attribIndex, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(attribIndex++);
+    }
+
+    // Normals
+    if (pNormals) {
+        glGenBuffers(1, &mVBONormals);
+        glBindBuffer(GL_ARRAY_BUFFER, mVBONormals);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(DRVector3) * iNumVertices, pNormals, GL_STATIC_DRAW);
+        glVertexAttribPointer(attribIndex, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(attribIndex++);
+    }
+
+    if (indices) {
+        GLuint indexBufferID;
+        glGenBuffers(1, &indexBufferID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indexCount, indices, GL_STATIC_DRAW);
+        mIndexCount = static_cast<uint32_t>(indexCount);
+    }
+
+    glBindVertexArray(0);
+    mInitialized = true;
+    return DR_OK;
+}
+
 DRReturn DRVertexBuffer::Init(const std::vector<DetailedVertex>& vertexData)
 {
     if (vertexData.empty()) return DR_ERROR;
@@ -128,15 +169,18 @@ DRReturn DRVertexBuffer::Init()
     glBindBuffer(GL_ARRAY_BUFFER, mVBOVertices);
     glVertexAttribPointer(attribIndex, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attribIndex++);
+    glUnmapBuffer(GL_ARRAY_BUFFER);
 
     if (mVBONormals) {
         glBindBuffer(GL_ARRAY_BUFFER, mVBONormals);
         glVertexAttribPointer(attribIndex, 3, GL_FLOAT, GL_TRUE, 0, 0);
         glEnableVertexAttribArray(attribIndex++);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
     }
 
     if (mVBOIndices) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBOIndices);
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
     }
 
     glBindVertexArray(0);
@@ -149,12 +193,12 @@ DRVector3* DRVertexBuffer::getVerticesBufferPtr(size_t vertexCount)
     assert(mVBOVertices == 0);    
     mVertexCount = vertexCount;
     auto verticesByteSize = vertexCount * sizeof(DRVector3);
-    GLenum flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+    GLenum flags = GL_MAP_WRITE_BIT;
 
     glGenBuffers(1, &mVBOVertices);
     glBindBuffer(GL_ARRAY_BUFFER, mVBOVertices);    
-    glBufferStorage(GL_ARRAY_BUFFER, verticesByteSize, 0, flags);
-    return static_cast<DRVector3*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, verticesByteSize, flags));
+    glBufferStorage(GL_ARRAY_BUFFER, verticesByteSize, 0, GL_MAP_WRITE_BIT);
+    return static_cast<DRVector3*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
 }
 
 DRVector3* DRVertexBuffer::getNormalsBufferPtr(size_t normalCount)
@@ -166,8 +210,8 @@ DRVector3* DRVertexBuffer::getNormalsBufferPtr(size_t normalCount)
 
     glGenBuffers(1, &mVBONormals);
     glBindBuffer(GL_ARRAY_BUFFER, mVBONormals);
-    glBufferStorage(GL_ARRAY_BUFFER, normalsByteSize, 0, flags);
-    return static_cast<DRVector3*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, normalsByteSize, flags));
+    glBufferStorage(GL_ARRAY_BUFFER, normalsByteSize, 0, GL_MAP_WRITE_BIT);
+    return static_cast<DRVector3*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
 }
 
 u32* DRVertexBuffer::getIndicesBufferPtr(size_t indicesCount)
@@ -179,8 +223,8 @@ u32* DRVertexBuffer::getIndicesBufferPtr(size_t indicesCount)
 
     glGenBuffers(1, &mVBOIndices);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBOIndices);
-    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, indicesByteSize, 0, flags);
-    return static_cast<u32*>(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, indicesByteSize, flags));
+    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, indicesByteSize, 0, GL_MAP_WRITE_BIT);
+    return static_cast<u32*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));
 }
 
 DRReturn DRVertexBuffer::Init(const std::vector<DetailedVertex>& vertexData, const std::vector<int>& indices)

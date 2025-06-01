@@ -3,7 +3,7 @@
 #include <filesystem>
 
 namespace Terrain {
-	TTPHeader loadTTPHeaderFromFile(const char* fileName)
+	TTPHeader TTPHeader::loadFromFile(const char* fileName)
 	{
 		auto fileSize = std::filesystem::file_size(fileName);
 		if (fileSize < sizeof(TTPHeader)) {

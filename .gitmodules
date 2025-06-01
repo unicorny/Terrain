@@ -1,3 +1,6 @@
 [submodule "dependencies/DREngine"]
 	path = dependencies/DREngine
 	url = git@github.com:unicorny/DREngine.git
+[submodule "dependencies/stb"]
+	path = dependencies/stb
+	url = https://github.com/nothings/stb
