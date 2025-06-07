@@ -26,7 +26,13 @@ namespace GPU {
 		}
 		if (mVBO) {
 			glDeleteBuffers(1, &mVBO);
+			mVBO = 0;
 		}
+		mType = DRGLBufferType::NONE;
+		mElementCount = 0;
+		mIsPrepared = false;
+		mIsReadyForRender = false;
+		
 	}
 
 	void DRGLBufferStatic::createOpenGLBuffer(DRGLBufferType type)

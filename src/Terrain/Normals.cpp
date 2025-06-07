@@ -10,6 +10,7 @@ namespace Terrain {
 		size_t normalsCursor = 0;
 		auto normalsBuffer = mNormalsBuffer->getVector3Ptr(GPU::DRGLBufferType::NORMALS_BUFFER);
 		auto quadSize = mGrid.quadSize();
+		DRReal height = static_cast<DRReal>(mGrid.height());
 
 		for (int y = 0; y < mGrid.vertices(); y++)
 		{
@@ -20,8 +21,8 @@ namespace Terrain {
 				DRReal hDown = heights[ (y > 0 ? y - 1 : y ) * mGrid.vertices() + x];
 				DRReal hUp = heights[( y + 1 < mGrid.vertices() ?  y + 1 : y) * mGrid.vertices() + x ];
 
-				DRVector3 dX = { 2.0f * quadSize, (hRight - hLeft) * mGrid.height(), 0.0f};
-				DRVector3 dY = { 0.0f, (hUp - hDown) * mGrid.height(), 2.0f * quadSize };
+				DRVector3 dX = { 2.0f * quadSize, (hRight - hLeft) * height, 0.0f};
+				DRVector3 dY = { 0.0f, (hUp - hDown) * height, 2.0f * quadSize };
 				DRVector3 normal = dY.cross(dX);
 				normalsBuffer[normalsCursor++] = normal.normalize();
 			}

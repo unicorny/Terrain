@@ -11,39 +11,27 @@
 
 namespace Terrain {
 
-	SimpleTerrain::SimpleTerrain()
-		: mTerrainHeight(0), mIsLoaded(false)
-	{
-
-	}
-
-	SimpleTerrain::~SimpleTerrain()
-	{
-
-	}
-
-	DRReturn SimpleTerrain::load(QuadraticGridLogic grid, const char* heightMapFileName)
+	DRReturn SimpleTerrain::load(const char* heightMapFileName)
 	{
 		mLoadingTimeSum.reset();
 		DRProfiler timeUsed;
 
-		mGrid = grid;
-		mVerticesBuffer = std::make_shared<GPU::DRGLBufferStatic>(grid.totalVertices());
+		mVerticesBuffer = std::make_shared<GPU::DRGLBufferStatic>(mGrid.totalVertices());
 		mVerticesBuffer->createOpenGLBuffer(GPU::DRGLBufferType::VERTEX_BUFFER);
-		mNormalsBuffer = std::make_shared<GPU::DRGLBufferStatic>(grid.totalVertices());
+		mNormalsBuffer = std::make_shared<GPU::DRGLBufferStatic>(mGrid.totalVertices());
 		mNormalsBuffer->createOpenGLBuffer(GPU::DRGLBufferType::NORMALS_BUFFER);
-		mIndicesBuffer = std::make_shared<GPU::DRGLBufferStatic>(grid.totalIndices(GL_TRIANGLE_STRIP));
+		mIndicesBuffer = std::make_shared<GPU::DRGLBufferStatic>(mGrid.totalIndices(GL_TRIANGLE_STRIP));
 		mIndicesBuffer->createOpenGLBuffer(GPU::DRGLBufferType::INDICES_BUFFER);
 
 		DRLog.writeToLog("%s for creating buffer with openGL", timeUsed.string().data());
 		timeUsed.reset();
 
-		DRReal vertexDataSize = (grid.totalVertices() * 2 * sizeof(DRVector3)) / 1024.0 / 1024.0;
-		DRReal indexDataSize = (grid.totalIndices(GL_TRIANGLE_STRIP) * sizeof(u32)) / 1024.0f / 1024.0f;
+		DRReal vertexDataSize = (mGrid.totalVertices() * 2 * sizeof(DRVector3)) / 1024.0 / 1024.0;
+		DRReal indexDataSize = (mGrid.totalIndices(GL_TRIANGLE_STRIP) * sizeof(u32)) / 1024.0f / 1024.0f;
 		DRLog.writeToLog("[SimpleTerrain] %.2f MByte Vertex Data, %.2f MByte Index Data", vertexDataSize, indexDataSize);
 
 		// generate DRVector2 positions
-		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, grid, mIndicesBuffer);
+		auto geometrieTask = std::make_shared<GenerateGeometrieTask>(g_MainScheduler, mGrid, mIndicesBuffer);
 		// geometrieTask->scheduleTask(geometrieTask);
 		// load height map from file
 		auto heightMapLoadingTask = std::make_shared<HeightMapLoader>(g_DiskScheduler, heightMapFileName);
@@ -51,13 +39,21 @@ namespace Terrain {
 		// interpolate heights from height map
 		auto heightMapTask = std::make_shared<CollectInterpolatedHeights>(g_MainScheduler, geometrieTask, heightMapLoadingTask);
 		// calculate normals with height map
-		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, grid, mNormalsBuffer, heightMapTask);
+		auto normalsTask = std::make_shared<CalculateNormalsTask>(g_MainScheduler, mGrid, mNormalsBuffer, heightMapTask);
 		// heightMapTask->scheduleTask(heightMapTask);
 		// bring all together
 		auto generatingSimpleTerrainTask = std::make_shared<GeneratingSimpleTerrainTask>(g_MainScheduler, heightMapTask, geometrieTask, normalsTask, this);
 		generatingSimpleTerrainTask->scheduleTask(generatingSimpleTerrainTask);
 		DRLog.writeToLog("[SimpleTerrain] %s for get glBuffer Pointer and starting tasks", timeUsed.string().data());
 		return DR_OK;
+	}
+
+	void SimpleTerrain::exit()
+	{
+		mVerticesBuffer.reset();
+		mNormalsBuffer.reset();
+		mIndicesBuffer.reset();
+		mIsLoaded = false;
 	}
 
 	DRReturn SimpleTerrain::Render()

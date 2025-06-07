@@ -21,8 +21,7 @@ using namespace std;
 Camera m_Camera;
 DRCPUScheduler* g_MainScheduler = nullptr;
 DRCPUScheduler* g_DiskScheduler = nullptr;
-Terrain::SimpleTerrain g_Terrain;
-CTerrain g_adaptiveTerrain;
+Terrain::AbstractTerrain* g_pTerrain = nullptr;
 DRProfiler timePerLoop;
 
 DRVideoConfig GetVideoConfig()
@@ -110,15 +109,23 @@ DRReturn Load()
 	std::string heightMapPath("Data/");
 	heightMapPath += *terrainConfig.getStr("Terrain", "HeightMapPath");
 	Terrain::QuadraticGridLogic grid(
-		terrainConfig.getInt("Terrain", "Size"), 
+		terrainConfig.getInt("Terrain", "Size"),
 		terrainConfig.getInt("Terrain", "Height"),
 		terrainConfig.getInt("Terrain", "Quads")
 	);
-	// if (g_adaptiveTerrain.Init("Data/Terrain512")) LOG_ERROR("Fehler bei Terrain Edit", DR_ERROR);
-	if (g_Terrain.load(grid, heightMapPath.data())) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
-	// if (g_Terrain.loadFromHMP("Data/testMap.hmp", "Data/Terrain512.ttp")) LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
-	//if(g_Terrain.Init("Data/Terrain512.ttp")) LOG_ERROR("Fehler beim terrain2 Init", DR_ERROR);
-	//DRLog.writeToLog("Time for DRTerrain: %s", timeUsed.string().data());
+	auto type = terrainConfig.getStr("Terrain", "Type");
+	if (type->compare("Simple")) {
+		g_pTerrain = new Terrain::SimpleTerrain(grid);
+	}
+	else if (type->compare("Adaptive")) {
+		LOG_ERROR("Not implemented yet", DR_ERROR);
+	}
+	else {
+		LOG_ERROR("Please set 'Simple' or 'Adaptive' for [Terrain] Type", DR_ERROR);
+	}
+	if (g_pTerrain->load(heightMapPath.data())) {
+		LOG_ERROR("Fehler beim Terrain Init", DR_ERROR);
+	}
 
 	//GL Dinge
 	//OpenGL einrichten
@@ -174,6 +181,8 @@ DRReturn Load()
 //----------------------------------------------------------------------------------------------------------------------
 void Exit()
 {
+	g_pTerrain->exit();
+	DR_SAVE_DELETE(g_pTerrain);
 	EnExit();
 	delete g_MainScheduler;
 	delete g_DiskScheduler;
@@ -216,7 +225,7 @@ DRReturn Move(float fTime)
 DRReturn Render(float fTime)
 {
 	// force reduce framerate
-	while (timePerLoop.millis() < 8.0 && g_Terrain.isLoaded()) {
+	while (timePerLoop.millis() < 8.0 && g_pTerrain->isLoaded()) {
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
 	}
 	timePerLoop.reset();
@@ -253,7 +262,7 @@ DRReturn Render(float fTime)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
-	if(g_Terrain.Render() == DR_ERROR) LOG_ERROR("Fehler beim Terrain Render!", DR_ERROR);
+	if(g_pTerrain->Render() == DR_ERROR) LOG_ERROR("Fehler beim Terrain Render!", DR_ERROR);
 	// if (g_adaptiveTerrain.Render(fTime)) { LOG_ERROR("Fehler beim Terrain2 Render!", DR_ERROR); }
 
 	glTranslatef(0.0f, -10.0f, 0.0f);	

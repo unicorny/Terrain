@@ -1,6 +1,7 @@
 #ifndef __TERRAIN_SIMPLE_TERRAIN_H
 #define __TERRAIN_SIMPLE_TERRAIN_H
 
+#include "AbstractTerrain.h"
 #include "../GPU/DRGLBufferStatic.h"
 
 #include "TTP.h"
@@ -17,28 +18,24 @@
 #include <atomic>
 
 namespace Terrain {
-	class SimpleTerrain
+	class SimpleTerrain : public AbstractTerrain
 	{
 	public:
-		SimpleTerrain();
-		~SimpleTerrain();
-		DRReturn load(QuadraticGridLogic grid, const char* heightMapFileName);
-		DRReturn Render();
-
-		inline bool isLoaded() const { return mIsLoaded; }
-		inline void setLoaded() { 
-			mIsLoaded = true;
-			DRLog.writeToLog("[SimpleTerrain] %s loading SimpleTerrain", mLoadingTimeSum.string().data()); 
-		}
+		using AbstractTerrain::AbstractTerrain;
+		virtual DRReturn load(const char* heightMapFileName);
+		virtual void exit();
+		virtual DRReturn Render();
+		
 		void generating3DVertices(
 			std::shared_ptr<CollectInterpolatedHeights> heightGenerator,
 			std::shared_ptr<GenerateGeometrieTask> geometryGenerator
 		);
 
 	protected:
-		QuadraticGridLogic mGrid;
-		DRReal			   mTerrainHeight;
-		std::atomic<bool> mIsLoaded;
+		inline void setLoaded() {
+			mIsLoaded = true;
+			DRLog.writeToLog("[SimpleTerrain] %s loading SimpleTerrain", mLoadingTimeSum.string().data());
+		}		
 		DRProfiler mLoadingTimeSum;
 		// directly mapped to gpu buffer, for faster data transfer
 		std::shared_ptr<GPU::DRGLBufferStatic> mVerticesBuffer;
