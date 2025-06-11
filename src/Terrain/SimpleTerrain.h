@@ -7,11 +7,8 @@
 #include "TTP.h"
 #include "HeightMap.h"
 #include "Normals.h"
-#include "QuadraticGridLogic.h"
 
-#include "DRCore2/DRTypes.h"
 #include "DRCore2/Threading/DRCPUTask.h"
-#include "DRCore2/Utils/DRProfiler.h"
 
 #include "DREngine/DRLogging.h"
 #include <string>
@@ -36,7 +33,6 @@ namespace Terrain {
 			mIsLoaded = true;
 			DRLog.writeToLog("[SimpleTerrain] %s loading SimpleTerrain", mLoadingTimeSum.string().data());
 		}		
-		DRProfiler mLoadingTimeSum;
 		// directly mapped to gpu buffer, for faster data transfer
 		std::shared_ptr<GPU::DRGLBufferStatic> mVerticesBuffer;
 		std::shared_ptr<GPU::DRGLBufferStatic> mNormalsBuffer;

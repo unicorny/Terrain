@@ -2,6 +2,7 @@
 #define __TERRAIN_ABSTRACT_TERRAIN_H
 
 #include "DRCore2/DRTypes.h"
+#include "DRCore2/Utils/DRProfiler.h"
 #include "QuadraticGridLogic.h"
 #include <atomic>
 
@@ -18,6 +19,7 @@ namespace Terrain {
 		inline bool isLoaded() const { return mIsLoaded; }
 
 	protected:
+		DRProfiler mLoadingTimeSum;
 		QuadraticGridLogic mGrid;
 		std::atomic<bool> mIsLoaded;		
 	};
