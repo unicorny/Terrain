@@ -90,7 +90,7 @@ namespace Terrain {
 			file.read(reinterpret_cast<char*>(mHeightMap->map.data()), size);
 
 			file.close();
-			DRLog.writeToLog("[LoadHeightMapFromHme] %s for loading Height Map from Hme file with %d x %d",
+			DRLog.writeToLog("[HeightMapLoader::loadFromHme] %s for loading Height Map from Hme file with %d x %d",
 				timeUsed.string().data(),
 				mHeightMap->width,
 				mHeightMap->height
@@ -134,7 +134,7 @@ namespace Terrain {
 		delete[] buffer;
 
 		file.close();
-		DRLog.writeToLog("[LoadHeightMapFromTTP] %s for loading Height Map from TTP file (%s) with %d x %d",
+		DRLog.writeToLog("[HeightMapLoader::loadFromTTP] %s for loading Height Map from TTP file (%s) with %d x %d",
 			timeUsed.string().data(),
 			mFileName.data(),
 			mHeightMap->width,
@@ -163,7 +163,7 @@ namespace Terrain {
 			//mHeightMap->map.push_back(colorBuffer[i].r);
 		//}
 		stbi_image_free(data);
-		DRLog.writeToLog("[LoadHeightMapFromImage] %s for loading Height Map from Image file (%s) with %d x %d",
+		DRLog.writeToLog("[HeightMapLoader::loadFromImage] %s for loading Height Map from Image file (%s) with %d x %d",
 			timeUsed.string().data(),
 			mFileName.data(),
 			mHeightMap->width,
@@ -172,17 +172,41 @@ namespace Terrain {
 		return DR_OK;
 	}
 
+	DRReturn HeightMapSplit::run()
+	{
+		// check if parameter are correct
+		auto& heightMap = mHeightMapLoader->getResult();
+		if (heightMap->width % static_cast<u16>(mWidth) != 0 || heightMap->height % static_cast<u16>(mHeight) != 0) {
+			DRLog.writeToLog("Cannot split height map: %dx%d into %dx%d chunks", heightMap->width, heightMap->height, mWidth, mHeight);
+			LOG_ERROR("Split Paramter invalid", DR_ERROR);
+		}
+		DRVector2i count(mWidth / heightMap->width, mHeight / heightMap->height);
+		auto partCount = count.x * count.y;
+		mHeightMaps.reserve(partCount);
+		for(int i = 0; i < partCount; i++) 
+		{
+			auto map = std::make_shared<HeightMap>();
+			map->map.reserve(mWidth * mHeight);
+			mHeightMaps.push_back(map);
+		}
+
+		DRVector2i cursor;
+		for (int y = 0; y < mHeight; y++) 
+		{
+			for (int x = 0; x < mWidth; x++) 
+			{
+				
+			}
+		}
+
+		return DR_OK;
+	}
+
 	DRReturn CollectInterpolatedHeights::run()
 	{
 		DRProfiler timeUsed;
-		auto& heightMap = mHeightMap;
-		if (!heightMap && mHeightMapLoaderTask) {
-			heightMap = mHeightMapLoaderTask->getResult();
-		}
-		auto& positions = mPositions;
-		if (!mPositions && mPositionsGeneratingTask) {
-			positions = mPositionsGeneratingTask->getPositions();
-		}
+		auto& heightMap = mHeightMapLoaderTask->getResult();
+		auto& positions = mPositionsGeneratingTask->getPositions();
 		// scale 
 		DRReal scaleMultiplicator = static_cast<DRReal>(heightMap->width - 1) / static_cast<DRReal>(mPositionsGeneratingTask->getSize());
 		assert(positions && heightMap);
@@ -194,14 +218,5 @@ namespace Terrain {
 		}
 		DRLog.writeToLog("[CollectInterpolatedHeights] %s for interpolate %d heights from Terrain Height Map", timeUsed.string().data(), mHeights->size());
 		return DR_OK;
-	}
-
-	std::shared_ptr<const std::vector<DRVector2>> CollectInterpolatedHeights::getPositions()
-	{
-		auto positions = mPositions;
-		if (!mPositions && mPositionsGeneratingTask) {
-			positions = mPositionsGeneratingTask->getPositions();
-		}
-		return positions;
 	}
 }
