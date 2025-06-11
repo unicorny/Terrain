@@ -1,7 +1,7 @@
 #include "main.h"
 #include "Camera.h"
 #include "Terrain/SimpleTerrain.h"
-#include "Terrain/NTerrain.h"
+#include "Terrain/AdaptiveTerrain.h"
 #include "Terrain/QuadraticGridLogic.h"
 #include "DREngine/DRLogging.h"
 #include "DREngine/Engine2Main.h"
@@ -114,11 +114,11 @@ DRReturn Load()
 		terrainConfig.getInt("Terrain", "Quads")
 	);
 	auto type = terrainConfig.getStr("Terrain", "Type");
-	if (type->compare("Simple")) {
+	if (type->compare("Simple") == 0) {
 		g_pTerrain = new Terrain::SimpleTerrain(grid);
 	}
-	else if (type->compare("Adaptive")) {
-		LOG_ERROR("Not implemented yet", DR_ERROR);
+	else if (type->compare("Adaptive") == 0) {
+		g_pTerrain = new Terrain::AdaptiveTerrain(grid);
 	}
 	else {
 		LOG_ERROR("Please set 'Simple' or 'Adaptive' for [Terrain] Type", DR_ERROR);
