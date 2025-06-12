@@ -14,19 +14,11 @@ namespace Terrain {
 
 	// should be cache efficient up to 256x256 (L2 Cache) or 128x128 (L1 Cache)
 	struct HeightMap {
-		enum class SeamOverlapFlag : u8 {
-			NONE = 0,
-			LEFT = 1,
-			TOP = 2,
-			RIGHT = 4,
-			BOTTOM = 8
-		};
-		HeightMap(): width(0), height(0), seamOverlapFlags(SeamOverlapFlag::NONE) {}
+		HeightMap(): width(0), height(0) {}
 		~HeightMap() {}
 
 		u16 width;
 		u16 height;
-		SeamOverlapFlag  seamOverlapFlags; 
 		std::vector<u8> map;
 		//! \param pos assume pos in height map ccordinates space
 		//! \return [0,1]

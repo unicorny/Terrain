@@ -6,8 +6,13 @@
 #include "DRCore2/Foundation/DRVector2.h"
 #include "DRCore2/Foundation/DRVector3.h"
 #include "QuadraticGridLogic.h"
+
+#include "magic_enum/magic_enum.hpp"
+
 #include <memory>
 #include <cassert>
+
+using namespace magic_enum;
 
 namespace Terrain {
 	class GenerateGeometrieTask : public DRCPUTask

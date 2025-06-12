@@ -11,7 +11,7 @@
 #include "stb_image.h"
 
 #include <filesystem>
-#include <cassert>
+#include <cassert>s
 
 namespace Terrain {
 
@@ -174,8 +174,15 @@ namespace Terrain {
 
 	DRReturn HeightMapSplit::run()
 	{
+		DRProfiler timeUsed;
 		// check if parameter are correct
 		auto& heightMap = mHeightMapLoader->getResult();
+		if (heightMap->width < mWidth || heightMap->height < mHeight) {
+			DRLog.writeToLog(
+				"At least one side of HeightMap (%dx%d) is smaller than the part size (%dx%d)",
+				heightMap->width, heightMap->height, mWidth, mHeight
+			);
+		}
 		if (heightMap->width % static_cast<u16>(mWidth) != 0 || heightMap->height % static_cast<u16>(mHeight) != 0) {
 			DRLog.writeToLog("Cannot split height map: %dx%d into %dx%d chunks", heightMap->width, heightMap->height, mWidth, mHeight);
 			LOG_ERROR("Split Paramter invalid", DR_ERROR);
@@ -183,21 +190,36 @@ namespace Terrain {
 		DRVector2i count(mWidth / heightMap->width, mHeight / heightMap->height);
 		auto partCount = count.x * count.y;
 		mHeightMaps.reserve(partCount);
+
 		for(int i = 0; i < partCount; i++) 
 		{
 			auto map = std::make_shared<HeightMap>();
-			map->map.reserve(mWidth * mHeight);
+			map->map.resize(mWidth * mHeight, 0);
 			mHeightMaps.push_back(map);
 		}
+		DRLog.writeToLog("[HeightMapSplit] %s time for reserve memory", timeUsed.string().data());
+		timeUsed.reset();
 
 		DRVector2i cursor;
-		for (int y = 0; y < mHeight; y++) 
+		for (int y = 0; y < heightMap->height; y++) 
 		{
-			for (int x = 0; x < mWidth; x++) 
+			int yOffset = y * heightMap->width;
+			int yPart = static_cast<int>(y / mHeight);
+			assert(yPart == static_cast<int>(floor((DRReal)y / (DRReal)mHeight)));
+			assert(yPart < count.y);
+			for (int xPart = 0; xPart < count.x; xPart++) 
 			{
-				
+				u32 fullMapIndex = yOffset + xPart * mWidth;
+				u32 subMapIndex = (y % mHeight) * mWidth;
+				u16 subMapPartIndex = yPart * count.x + xPart;
+				memcpy(&mHeightMaps[subMapPartIndex]->map.data()[subMapIndex], &heightMap->map[fullMapIndex], mWidth);
 			}
 		}
+		DRLog.writeToLog("[HeightMapSplit] %s time for copy %d height values into %d maps", 
+			timeUsed.string().data(),
+			heightMap->width * heightMap->height,
+			partCount
+		);
 
 		return DR_OK;
 	}
