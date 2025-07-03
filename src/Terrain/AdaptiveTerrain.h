@@ -3,7 +3,13 @@
 
 #include "AbstractTerrain.h"
 
+#include "DRCore2/Foundation/DRVector3.h"
+
+#include <vector>
+#include <memory>
+
 namespace Terrain {
+
 	class AdaptiveTerrain: public AbstractTerrain
 	{
 	public:
@@ -15,6 +21,19 @@ namespace Terrain {
 
 	protected:
 
+
+	};	
+
+	class AdaptiveTerrainQuad
+	{
+	public:
+		AdaptiveTerrainQuad();
+		virtual ~AdaptiveTerrainQuad();
+
+	protected:		
+		size_t mIndex;
+		std::vector<DRVector3> mPositions;
+		std::array<std::unique_ptr<AdaptiveTerrainQuad>, 4> mChilds;
 	};
 }
 
